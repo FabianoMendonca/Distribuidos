@@ -6,16 +6,16 @@
 >onde o servidor busca no arquivo a porta referente ao nome;    
 
 #### Descrição do funcionamento do servidor
-*Servidor lê do arquivo "serverconfig.json"
-*Seleciona a porta para escutar novos clientes
-*Servidor inicia um Lobby onde serão criadas novas salas .
-*Seleciona a porta para escutar novos servidores (também é definida pela configuração inicial)
-*O cliente pode:
-    1.Criar uma sala com o nome "sala";
-    2.Entrar na sala com o nome "sala";
-    3.Deixar a sala de chat atual;
-    4.Entre outros comando (instruções.md)
-*Cada sala criada possiu um historico de mensagens
+* Servidor lê do arquivo "serverconfig.json"
+* Seleciona a porta para escutar novos clientes
+* Servidor inicia um Lobby onde serão criadas novas salas .
+* Seleciona a porta para escutar novos servidores (também é definida pela configuração inicial)
+* O cliente pode:
+    1. Criar uma sala com o nome "sala";
+    2. Entrar na sala com o nome "sala";
+    3. Deixar a sala de chat atual;
+    4. Entre outros comando (instruções.md)
+* Cada sala criada possiu um historico de mensagens
 
 
 #### Em andamento
