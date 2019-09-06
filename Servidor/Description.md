@@ -11,9 +11,9 @@
 * Servidor inicia um Lobby onde serão criadas novas salas .
 * Seleciona a porta para escutar novos servidores (também é definida pela configuração inicial)
 * O cliente pode:
-    1. Criar uma sala com o nome "sala";
-    2. Entrar na sala com o nome "sala";
-    3. Deixar a sala de chat atual;
+    1. Criar uma ou diversas salas
+    2. Entrar/Sair da sala
+    3. Definir/Trocar apelido
     4. Entre outros comando (instruções.md)
 * Cada sala criada possiu um historico de mensagens
 
