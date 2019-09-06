@@ -23,7 +23,7 @@
 * Comunicação entre servidores diferentes de forma descentralizada.
 
 #### Metas
-
+- [ ] **Definir um calendario para a realização das tarefas**
 - [ ] Suporte a escalibilidade do numero de servidores
 - [ ] Não permitir 2 salas/clientes com o mesmo nome
 - [ ] Sincronização das mensagens do cliente.
