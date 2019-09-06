@@ -1,9 +1,9 @@
->Este arquivo tem como função definir metas e marcar metas já realizadas
+##### Este arquivo tem como função definir metas e marcar metas já realizadas
 
 #### Inicialização do servidor
 
-###### "go run server.go 'nome'" 
->onde o servidor busca no arquivo a porta referente ao nome;    
+> "go run server.go 'nome'" 
+* onde o servidor busca no arquivo a porta referente ao nome;    
 
 #### Descrição do funcionamento do servidor
 * Servidor lê do arquivo "serverconfig.json"
