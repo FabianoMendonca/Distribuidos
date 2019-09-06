@@ -1,8 +1,8 @@
->>Este arquivo tem como função definir metas e marcar metas já realizadas
+>Este arquivo tem como função definir metas e marcar metas já realizadas
 
-####Descrição da inicialização do servidor
+#### Descrição da inicialização do servidor
 
-######"go run server.go 'nome'" 
+###### "go run server.go 'nome'" 
 >onde o servidor busca no arquivo a porta referente ao nome;    
 
 #### Descrição do funcionamento do servidor
@@ -24,8 +24,8 @@
 
 #### Metas
 
-[]Suporte a escalibilidade do numero de servidores
-[]Não permitir 2 salas/clientes com o mesmo nome
-[]Sincronização das mensagens do cliente.
-[]Tolerancia a falhas
-[]Ambiente de testes (se possivel)
+[] Suporte a escalibilidade do numero de servidores
+[] Não permitir 2 salas/clientes com o mesmo nome
+[] Sincronização das mensagens do cliente.
+[] Tolerancia a falhas
+[] Ambiente de testes (se possivel)
