@@ -24,8 +24,8 @@
 
 #### Metas
 
-[] Suporte a escalibilidade do numero de servidores
-[] Não permitir 2 salas/clientes com o mesmo nome
-[] Sincronização das mensagens do cliente.
-[] Tolerancia a falhas
-[] Ambiente de testes (se possivel)
+- [ ] Suporte a escalibilidade do numero de servidores
+- [ ] Não permitir 2 salas/clientes com o mesmo nome
+- [ ] Sincronização das mensagens do cliente.
+- [ ] Tolerancia a falhas
+- [ ] Ambiente de testes (se possivel)
