@@ -20,7 +20,7 @@
 
 #### Em andamento
 
-*Comunicação entre servidores diferentes de forma descentralizada.
+* Comunicação entre servidores diferentes de forma descentralizada.
 
 #### Metas
 
