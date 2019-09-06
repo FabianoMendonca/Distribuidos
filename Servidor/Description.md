@@ -2,7 +2,7 @@
 
 #### Inicialização do servidor
 
-####### "go run server.go 'nome'" 
+###### "go run server.go 'nome'" 
 >onde o servidor busca no arquivo a porta referente ao nome;    
 
 #### Descrição do funcionamento do servidor
