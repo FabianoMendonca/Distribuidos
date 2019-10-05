@@ -53,35 +53,194 @@ const (
 
 // A Lobby receives messages on its channels, and keeps track of the currently
 // connected clients, and currently created chat rooms.
+type Server struct {
+	name     string
+	incoming chan *MessageServer
+	outgoing chan string
+	conn     net.Conn
+	reader   *bufio.Reader
+	writer   *bufio.Writer
+}
+
+func NewServer(conn net.Conn) *Server {
+	writer := bufio.NewWriter(conn)
+	reader := bufio.NewReader(conn)
+
+	server := &Server{
+		name:     CLIENT_NAME,
+		incoming: make(chan *MessageServer),
+		outgoing: make(chan string),
+		conn:     conn,
+		reader:   reader,
+		writer:   writer,
+	}
+
+	server.Listen()
+	return server
+}
+func (server *Server) Listen() {
+	go server.Read()
+	go server.Write()
+}
+func (server *Server) Read() {
+	for {
+		str, err := server.reader.ReadString('\n')
+		if err != nil {
+			log.Println(err)
+			break
+		}
+		temp := strings.Split(str, "#|#")
+		var message *MessageServer
+		if temp[0] == "05" {
+			message = NewMessageServer(temp[0], temp[2], temp[1])
+		} else {
+			message = NewMessageServer(temp[0], "", temp[1])
+		}
+		server.incoming <- message
+	}
+	close(server.incoming)
+	log.Println("Closed server's incoming channel read thread")
+}
+
+// Reads in messages from the Client's outgoing channel, and writes them to the
+// Client's socket.
+func (server *Server) Write() {
+	for str := range server.outgoing {
+		_, err := server.writer.WriteString(str)
+		if err != nil {
+			log.Println(err)
+			break
+		}
+		err = server.writer.Flush()
+		if err != nil {
+			log.Println(err)
+			break
+		}
+	}
+	log.Println("Closed server's write thread")
+}
+
 type Lobby struct {
-	clients   []*Client
-	servers   []net.Conn
-	chatRooms map[string]*ChatRoom
-	incoming  chan *Message
-	join      chan *Client
-	leave     chan *Client
-	delete    chan *ChatRoom
+	ServerName            string
+	clients               []*Client
+	servers               []*Server
+	chatRooms             map[string]*ChatRoom
+	incoming              chan *Message
+	join                  chan *Client
+	leave                 chan *Client
+	delete                chan *ChatRoom
+	ServerConnect         string
+	ServerListConnections map[string]string
+	serverChanIn          chan *MessageServer
 }
 
 //NewLobby : Creates a lobby which beings listening over its channels.
-func NewLobby() *Lobby {
+func NewLobby(portx string) *Lobby {
 	lobby := &Lobby{
-		clients:   make([]*Client, 0),
-		chatRooms: make(map[string]*ChatRoom),
-		incoming:  make(chan *Message),
-		join:      make(chan *Client),
-		leave:     make(chan *Client),
-		delete:    make(chan *ChatRoom),
+		ServerName:   portx,
+		clients:      make([]*Client, 0),
+		chatRooms:    make(map[string]*ChatRoom),
+		incoming:     make(chan *Message),
+		join:         make(chan *Client),
+		leave:        make(chan *Client),
+		delete:       make(chan *ChatRoom),
+		serverChanIn: make(chan *MessageServer),
 	}
+	lobby.LobbyStart()
 	lobby.Listen()
 	return lobby
 }
 
-//Func Server in lobby
-func (lobby *Lobby) AddServer(NewServer net.Conn) {
+// LobbyStart config
+func (lobby *Lobby) LobbyStart() {
+	var wg sync.WaitGroup
+	data, err := ioutil.ReadFile("serverconfig.json")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	//config made a map with all configuration from the server
+	//that include all ports that we used from new connections and new listeners
+	//imported from a Json file
+	config := make(map[string]map[string]interface{})
+	err = json.Unmarshal(data, &config)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	ServerListConnections := make(map[string]string)
+	ServerConnect := config["ServerListenServer"]
 
-	lobby.servers = append(lobby.servers, NewServer)
+	for i, k := range ServerConnect {
+		if i == lobby.ServerName {
+			continue
+		}
+		Temp := fmt.Sprintf("%v", k)
+		ServerListConnections[Temp] = "NoConnected"
+	}
+	var portInit string
+	for i, k := range ServerConnect {
+		if lobby.ServerName == i {
+			portInit = fmt.Sprintf("%v", k)
+		}
+	}
 
+	//Listener Server conn
+	Slistener, err := net.Listen(CONN_TYPE, portInit)
+	if err != nil {
+		log.Println("Error: ", err)
+		os.Exit(1)
+	}
+	defer Slistener.Close()
+	log.Println("Server Listening on " + portInit)
+
+	wg.Add(3)
+	go func() {
+		for {
+			Sconn, err := Slistener.Accept()
+			if err != nil {
+				log.Println("Error: ", err)
+				continue
+
+			}
+			lobby.AddServer(Sconn)
+			log.Printf("Deu certo carai!!!!!")
+		}
+	}()
+	wg.Add(1)
+	//fmt.Println(ServerList)
+	// Function that attempts to connect to a new server
+	go func() {
+		for {
+			for j, k := range ServerListConnections {
+				fmt.Println("Server Port: " + j + " Status :" + k)
+				if k == "Connected" {
+					continue
+				} else {
+					if lobby.ServerConnectServer(j) == 1 {
+
+						delete(ServerListConnections, j)
+						ServerListConnections[j] = "Connected"
+					}
+				}
+			}
+			time.Sleep(10 * time.Second)
+		}
+	}()
+
+	wg.Wait()
+
+}
+
+//AddServer kkk
+func (lobby *Lobby) AddServer(newconn net.Conn) {
+	server := NewServer(newconn)
+	lobby.servers = append(lobby.servers, server)
+	go func() {
+		for message := range server.incoming {
+			lobby.serverChanIn <- message
+		}
+	}()
 }
 
 //Listen Starts a new thread which listens over the Lobby's various channels.
@@ -97,6 +256,9 @@ func (lobby *Lobby) Listen() {
 				lobby.Leave(client)
 			case chatRoom := <-lobby.delete:
 				lobby.DeleteChatRoom(chatRoom)
+			case server := <-lobby.serverChanIn:
+				log.Print("funcaonova")
+				log.Print(server)
 			}
 		}
 	}()
@@ -185,7 +347,7 @@ func (lobby *Lobby) SendMessage(message *Message) {
 		log.Println("client tried to send message in lobby")
 		return
 	}
-	message.client.chatRoom.Broadcast(message.String())
+	message.client.chatRoom.Broadcast(message.String(), lobby)
 	log.Println("client sent message")
 }
 
@@ -238,7 +400,7 @@ func (lobby *Lobby) ChangeName(client *Client, name string) {
 	if client.chatRoom == nil {
 		client.outgoing <- fmt.Sprintf(NOTICE_PERSONAL_NAME, name)
 	} else {
-		client.chatRoom.Broadcast(fmt.Sprintf(NOTICE_ROOM_NAME, client.name, name))
+		client.chatRoom.Broadcast(fmt.Sprintf(NOTICE_ROOM_NAME, client.name, name), nil)
 	}
 	client.name = name
 	log.Println("client changed their name")
@@ -299,12 +461,12 @@ func (chatRoom *ChatRoom) Join(client *Client) {
 		client.outgoing <- message
 	}
 	chatRoom.clients = append(chatRoom.clients, client)
-	chatRoom.Broadcast(fmt.Sprintf(NOTICE_ROOM_JOIN, client.name))
+	chatRoom.Broadcast(fmt.Sprintf(NOTICE_ROOM_JOIN, client.name), nil)
 }
 
 //Leave : Removes the given Client from the ChatRoom.
 func (chatRoom *ChatRoom) Leave(client *Client) {
-	chatRoom.Broadcast(fmt.Sprintf(NOTICE_ROOM_LEAVE, client.name))
+	chatRoom.Broadcast(fmt.Sprintf(NOTICE_ROOM_LEAVE, client.name), nil)
 	for i, otherClient := range chatRoom.clients {
 		if client == otherClient {
 			chatRoom.clients = append(chatRoom.clients[:i], chatRoom.clients[i+1:]...)
@@ -315,11 +477,15 @@ func (chatRoom *ChatRoom) Leave(client *Client) {
 }
 
 //Broadcast : Sends the given message to all Clients currently in the ChatRoom.
-func (chatRoom *ChatRoom) Broadcast(message string) {
+func (chatRoom *ChatRoom) Broadcast(message string, lobby *Lobby) {
 	chatRoom.expiry = time.Now().Add(EXPIRY_TIME)
 	chatRoom.messages = append(chatRoom.messages, message)
 	for _, client := range chatRoom.clients {
 		client.outgoing <- message
+	}
+	Smessage := NewMessageServer("05", message, chatRoom.name)
+	for _, server := range lobby.servers {
+		server.outgoing <- Smessage.String()
 	}
 }
 
@@ -327,7 +493,7 @@ func (chatRoom *ChatRoom) Broadcast(message string) {
 // them back into the lobby.
 func (chatRoom *ChatRoom) Delete() {
 	//notify of deletion?
-	chatRoom.Broadcast(NOTICE_ROOM_DELETE)
+	chatRoom.Broadcast(NOTICE_ROOM_DELETE, nil)
 	for _, client := range chatRoom.clients {
 		client.chatRoom = nil
 	}
@@ -439,6 +605,39 @@ func (message *Message) String() string {
 	return fmt.Sprintf("%s - %s: %s\n", message.time.Format(time.Kitchen), message.client.name, message.text)
 }
 
+//MessageServer
+//prefix 00-> NewRoom,Delete,Join
+type MessageServer struct {
+	prefix  string
+	info    string
+	message string
+}
+
+//NewMessageServer
+func NewMessageServer(code string, message1 string, info1 string) *MessageServer {
+	return &MessageServer{
+		prefix:  code,
+		message: message1,
+		info:    info1,
+	}
+}
+func (messageserver *MessageServer) String() string {
+	if messageserver.prefix == "00" {
+		//prefix 00 - New Room
+		return fmt.Sprintf("%s#|#%s#|#", messageserver.prefix, messageserver.info)
+	} else if messageserver.prefix == "01" {
+		//prefix 01 - Join
+		return fmt.Sprintf("%s#|#%s#|#", messageserver.prefix, messageserver.info)
+	} else if messageserver.prefix == "02" {
+		//prefix 02 - Leave
+		return fmt.Sprintf("%s#|#%s#|#", messageserver.prefix, messageserver.info)
+	} else if messageserver.prefix == "03" {
+		//prefix 03 - Delete
+		return fmt.Sprintf("%s#|#%s#|#", messageserver.prefix, messageserver.info)
+	}
+	return fmt.Sprintf("%s#|#%s#|#%s\n", messageserver.prefix, messageserver.info, messageserver.message)
+}
+
 //Server functions
 //ServerRead
 func ServerRead(conn net.Conn) {
@@ -477,9 +676,8 @@ func ServerWrite(conn net.Conn) {
 	}
 }
 
-// ServerConnect return 1 for acc connections or 0 for connections refused
-
-func ServerConnect(ConnPort string) int {
+// ServerConnectServer return 1 for acc connections or 0 for connections refused
+func (lobby *Lobby) ServerConnectServer(ConnPort string) int {
 
 	conn, err := net.Dial(CONN_TYPE, ConnPort)
 	if err != nil {
@@ -513,7 +711,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	ServerList := make(map[string]string)
+	//ServerList := make(map[string]string)
 	ServerPortInit := config["ServerPortInit"]
 	ServerConnections := config["ServerListenServer"]
 
@@ -524,20 +722,13 @@ func main() {
 	fmt.Println(os.Args[1])
 	fmt.Println(config)
 	ConnPort := fmt.Sprintf("%v", ServerPortInit[os.Args[1]])
-	ConnServerPort := fmt.Sprintf("%v", ServerConnections[os.Args[1]])
+	//ConnServerPort := fmt.Sprintf("%v", ServerConnections[os.Args[1]])
 	fmt.Println(ConnPort)
 	//*/
 
-	for i, k := range ServerConnections {
-		if i == os.Args[1] {
-			continue
-		}
-		Temp := fmt.Sprintf("%v", k)
-		ServerList[Temp] = "NoConnected"
-	}
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
-	lobby := NewLobby()
+	lobby := NewLobby(os.Args[1])
 
 	//Listener clients conn
 	listener, err := net.Listen(CONN_TYPE, ConnPort)
@@ -547,16 +738,6 @@ func main() {
 	}
 	defer listener.Close()
 	log.Println("Listening on " + ConnPort)
-
-	//Listener Server conn
-
-	Slistener, err := net.Listen(CONN_TYPE, ConnServerPort)
-	if err != nil {
-		log.Println("Error: ", err)
-		os.Exit(1)
-	}
-	defer Slistener.Close()
-	log.Println("Server Listening on " + ConnServerPort)
 
 	// New client conn func
 	wg.Add(3)
@@ -571,43 +752,8 @@ func main() {
 			lobby.Join(NewClient(conn))
 		}
 	}()
-	wg.Add(3)
-	go func() {
-		for {
-			Sconn, err := Slistener.Accept()
-			if err != nil {
-				log.Println("Error: ", err)
-				continue
-
-			}
-			lobby.AddServer(Sconn)
-			log.Printf("Deu certo carai!!!!!")
-		}
-	}()
-
-	wg.Add(1)
-	//fmt.Println(ServerList)
-	// Function that attempts to connect to a new server
-	go func() {
-		for {
-
-			for j, k := range ServerList {
-				fmt.Println("Server Port: " + j + " Status :" + k)
-				if k == "Connected" {
-					continue
-				} else {
-					if ServerConnect(j) == 1 {
-
-						delete(ServerList, j)
-						ServerList[j] = "Connected"
-					}
-				}
-				//And when he lost the connection ?
-			}
-			time.Sleep(10 * time.Second)
-		}
-	}()
-
 	wg.Wait()
 
 }
+
+// ata
