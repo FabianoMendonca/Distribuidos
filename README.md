@@ -11,7 +11,7 @@ A pasta Servidor possui o código dos servidores (server.go)
 O arquivo instrucoes.md da pasta Servidor possui os comandos disponíveis no chat.
 O arquivo servidorconfig.json é um JSON contendo as configurações de portas iniciais para os clientes e servidores.
 
-Para executar o código do cliente basta utilizar 'go run cliente.go' no terminal
+Para executar o código do cliente basta utilizar 'go run cliente.go' no terminal. o código irá perguntar a porta de qual servidor o cliente deseja se conectar.
 
 Para executar o servidor deve-se informar o nome do servidor que deseja ser conectado (S1, S2, S3, S4) 
 Ex:  'go run server.go S1'
