@@ -146,7 +146,7 @@ func NewLobby(portx string) *Lobby {
 		delete:       make(chan *ChatRoom),
 		serverChanIn: make(chan *MessageServer),
 	}
-	lobby.LobbyStart()
+	go lobby.LobbyStart()
 	lobby.Listen()
 	return lobby
 }
