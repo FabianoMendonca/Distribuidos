@@ -483,9 +483,11 @@ func (chatRoom *ChatRoom) Broadcast(message string, lobby *Lobby) {
 	for _, client := range chatRoom.clients {
 		client.outgoing <- message
 	}
-	Smessage := NewMessageServer("05", message, chatRoom.name)
-	for _, server := range lobby.servers {
-		server.outgoing <- Smessage.String()
+	if lobby != nil {
+		Smessage := NewMessageServer("05", message, chatRoom.name)
+		for _, server := range lobby.servers {
+			server.outgoing <- Smessage.String()
+		}
 	}
 }
 
