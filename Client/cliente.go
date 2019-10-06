@@ -6,10 +6,12 @@ import (
 	"net"
 	"os"
 	"sync"
+	"log"
+
 )
 
 const (
-	CONN_PORT = ":3333"
+	
 	CONN_TYPE = "tcp"
 
 	MSG_DISCONNECT = "Desconectado do servidor.\n"
@@ -17,7 +19,6 @@ const (
 
 var wg sync.WaitGroup
 
-/*
 // Funcao que le o conteudo do arquivo e retorna um slice the string com todas as linhas do arquivo
 func lerTexto(caminhoDoArquivo string) ([]string, error) {
 	// Abre o arquivo
@@ -60,7 +61,7 @@ func escreverTexto(linhas []string, caminhoDoArquivo string) error {
 	// Caso a funcao flush retorne um erro ele sera retornado aqui tambem
 	return escritor.Flush()
 }
-*/
+
 // Lê a partir do socket as saídas para o console.
 func Read(conn net.Conn) {
 	reader := bufio.NewReader(conn)
@@ -97,25 +98,41 @@ func Write(conn net.Conn) {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		/*
-				var conteudo []string
-				conteudo, err = lerTexto("log1.txt")
 
-				conteudo = append(conteudo, str)
+		var conteudo []string
+		conteudo, err = lerTexto("log1.txt")
 
-				err = escreverTexto(conteudo, "log1.txt")
-				if err != nil {
-					log.Fatalf("Erro:", err)
-				}
-			}
+		conteudo = append(conteudo, str)
 
-		*/
+		err = escreverTexto(conteudo, "log1.txt")
+		if err != nil {
+			log.Fatalf("Erro:", err)
+		}
 	}
 }
 
 // Inicia um encadeamento de leitura e gravação que se conecta ao servidor através da conexão socket.
 func main() {
 	wg.Add(1)
+
+	var CONN_PORT string = ":3333"
+	var input string
+
+	fmt.Printf("Insira a porta do servidor desejado [S1: 3333, S2: 3334, S3: 3335, S4: 3336]: ")
+	fmt.Scanln(&input)
+
+	if (input == "3333"){
+		CONN_PORT = ":3333"
+	}
+	if (input == "3334"){
+		CONN_PORT = ":3334"
+	}
+	if (input == "3335"){
+		CONN_PORT = ":3335"
+	}
+	if (input == "3336"){
+		CONN_PORT = ":3336"
+	}
 
 	conn, err := net.Dial(CONN_TYPE, CONN_PORT)
 	if err != nil {
