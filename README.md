@@ -16,5 +16,12 @@ Para executar o código do cliente basta utilizar 'go run cliente.go' no termina
 Para executar o servidor deve-se informar o nome do servidor que deseja ser conectado (S1, S2, S3, S4) 
 Ex:  'go run server.go S1'
 
+# Comandos de cliente
 
-
+"/create sala" criar uma sala com o nome "sala";
+"/join sala" entrar na sala com o nome "sala";
+"/leave" deixar a sala de chat atual;
+"/list" lista todas as salas de chat;
+"/name" nome muda o nome do cliente para "nome"
+"/help" lista de todos os comando do chat;
+"/quit" sair do programa.
