@@ -11,7 +11,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"strconv"
 )
+
+var cont = 1
+var pai = 0
 
 const (
 	CONN_TYPE = "tcp"
@@ -50,6 +54,51 @@ const (
 
 	EXPIRY_TIME time.Duration = 7 * 24 * time.Hour
 )
+
+
+// Funcao que le o conteudo do arquivo e retorna um slice the string com todas as linhas do arquivo
+func lerTexto(caminhoDoArquivo string) ([]string, error) {
+	// Abre o arquivo
+	arquivo, err := os.Open(caminhoDoArquivo)
+	// Caso tenha encontrado algum erro ao tentar abrir o arquivo retorne o erro encontrado
+	if err != nil {
+		return nil, err
+	}
+	// Garante que o arquivo sera fechado apos o uso
+	defer arquivo.Close()
+
+	// Cria um scanner que le cada linha do arquivo
+	var linhas []string
+	scanner := bufio.NewScanner(arquivo)
+	for scanner.Scan() {
+		linhas = append(linhas, scanner.Text())
+	}
+
+	// Retorna as linhas lidas e um erro se ocorrer algum erro no scanner
+	return linhas, scanner.Err()
+}
+
+// Funcao que escreve um texto no arquivo e retorna um erro caso tenha algum problema
+func escreverTexto(linhas []string, caminhoDoArquivo string) error {
+	// Cria o arquivo de texto
+	arquivo, err := os.Create(caminhoDoArquivo)
+	// Caso tenha encontrado algum erro retornar ele
+	if err != nil {
+		return err
+	}
+	// Garante que o arquivo sera fechado apos o uso
+	defer arquivo.Close()
+
+	// Cria um escritor responsavel por escrever cada linha do slice no arquivo de texto
+	escritor := bufio.NewWriter(arquivo)
+	for _, linha := range linhas {
+		fmt.Fprintln(escritor, linha)
+	}
+
+	// Caso a funcao flush retorne um erro ele sera retornado aqui tambem
+	return escritor.Flush()
+}
+
 
 // A Lobby receives messages on its channels, and keeps track of the currently
 // connected clients, and currently created chat rooms.
@@ -348,7 +397,7 @@ func (lobby *Lobby) SendMessage(message *Message) {
 		return
 	}
 	message.client.chatRoom.Broadcast(message.String(), lobby)
-	log.Println("client sent message")
+	log.Println("client " + message.client.name + " sent message " + message.text + " to the room " + message.client.chatRoom.name + " .")
 }
 
 //CreateChatRoom Attempts to create a chat room with the given name, provided that one does
@@ -604,6 +653,27 @@ func NewMessage(time time.Time, client *Client, text string) *Message {
 
 // Returns a string representation of the message.
 func (message *Message) String() string {
+
+	var conteudo []string
+	conteudo, err := lerTexto("logMsg.csv")
+
+	var cont2 = strconv.Itoa(cont)
+	var pai2 = strconv.Itoa(pai)
+	var hora = time.Now()
+	var sala = message.client.chatRoom.name
+	var cliente = message.client.name
+	var texto = message.text
+
+	conteudo = append(conteudo, cont2 + ";" + pai2 + ";" + hora.Format("3:04PM") + ";" + sala + ";" + cliente + ";" + texto)
+
+	cont = cont + 1
+	pai = pai + 1
+
+	err = escreverTexto(conteudo, "logMsg.csv")
+	if err != nil {
+		log.Fatalf("Erro:", err)
+	}
+
 	return fmt.Sprintf("%s - %s: %s\n", message.time.Format(time.Kitchen), message.client.name, message.text)
 }
 
